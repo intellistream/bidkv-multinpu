@@ -6,6 +6,24 @@ Framework-portable KV cache request scheduling primitive.
 
 BidKV is the artifact repository for the SC 2026 paper **"BidKV: Utility-Guided Preemption Scheduling for KV-Pressure LLM Serving"** by Yanbo Chen, Mingqi Wang, Shuhao Zhang, Xiaofei Liao, and Hai Jin.
 
+## BidKV-MultiNPU branch status
+
+This checkout is the parent repository for the post-acceptance
+**BidKV-MultiNPU** research extension. The SC 2026 implementation and paper are
+the inherited single-device baseline; they are not evidence that coordinated
+multi-NPU victim selection already works or improves serving performance.
+
+New MultiNPU work belongs on `feature/bidkv-multinpu`. Runtime dependencies are
+pinned under `third_party/` on the dedicated dependency branch with the same
+name. The initial research boundary, negative-stop rules, and M0 acceptance
+criteria are recorded in
+[`docs/BIDKV_MULTINPU_M0.md`](docs/BIDKV_MULTINPU_M0.md).
+
+Do not edit or relabel the accepted paper to claim MultiNPU results. A
+multi-device performance claim requires a real implementation, matched
+single-device/local-policy baselines, repeated online runs, correctness gates,
+and manifest-backed evidence.
+
 ## Overview
 
 `bidkv` is a **zero-dependency** Python package that addresses the **victim-selection problem** under KV cache pressure: when KV memory is exhausted, which request should be preempted?

@@ -1,5 +1,11 @@
 # BidKV
 
+> **BidKV-MultiNPU 分支说明：** 本仓库的
+> `feature/bidkv-multinpu` 是中稿后多 NPU 扩展课题的父分支。现有 SC 2026
+> 代码、论文和结果仍然只是单设备基线，不能作为多 NPU 协同机制或性能收益的
+> 证据。新的研究边界、M0 交付物与停止条件见
+> [`docs/BIDKV_MULTINPU_M0.md`](docs/BIDKV_MULTINPU_M0.md)。
+
 跨框架可移植的 KV cache 请求调度原语。
 
 [English](README.md)

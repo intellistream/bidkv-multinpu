@@ -1,0 +1,16 @@
+[submodule "third_party/vllm-hust"]
+	path = third_party/vllm-hust
+	url = git@github.com:vLLM-HUST/vllm-hust.git
+	branch = feature/bidkv-multinpu
+[submodule "third_party/vllm-ascend-hust"]
+	path = third_party/vllm-ascend-hust
+	url = git@github.com:vLLM-HUST/vllm-ascend-hust.git
+	branch = feature/bidkv-multinpu
+[submodule "third_party/vllm-hust-dev-hub"]
+	path = third_party/vllm-hust-dev-hub
+	url = git@github.com:vLLM-HUST/vllm-hust-dev-hub.git
+	branch = feature/bidkv-multinpu
+[submodule "third_party/llm-serving-workloads"]
+	path = third_party/llm-serving-workloads
+	url = git@github.com:vLLM-HUST/llm-serving-workloads.git
+	branch = feature/bidkv-multinpu
