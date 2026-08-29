@@ -3,7 +3,7 @@
 - Status: M0 advisor-authored storyline draft; implementation and experiments remain student-owned.
 - Source base: `dc06f417667807af69d6f1603455310f3ad4df97` (`main`).
 - Accepted single-device manuscript: preserved at `paper/conference_101719.tex` and not modified.
-- Artifact commit: `PENDING_ARTIFACT_COMMIT` (bound by a following metadata-only commit).
+- Artifact commit: `119a771c6adb532dacc447e2c8c1e6812b2e1b5a` (bound by this metadata-only commit).
 - TeX entrypoint: `paper/multinpu/main.tex`.
 - Bibliography: `paper/multinpu/references.bib`.
 - Evidence ledger: `paper/multinpu/EVIDENCE_LEDGER.md`.
