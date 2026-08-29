@@ -1,0 +1,205 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.78in]{geometry}
+\usepackage{booktabs,array,amsmath,microtype,float}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parskip}{0.25em}
+\setlength{\emergencystretch}{2em}
+\title{BidKV-MultiNPU: Ownership-Aware Victim Coordination Under Distributed KV Pressure}
+\author{Advisor-authored storyline draft; implementation and experiments remain student-owned}
+\date{M0 proposal, August 2026}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+BidKV is an accepted single-device victim-selection policy for KV-pressure LLM
+serving.  Running that policy on several accelerators does not by itself create
+a multi-device mechanism: a request may have state on several owners, pressure
+can be asymmetric, and a locally attractive victim may trigger duplicated
+recomputation, collective delay, or cross-device traffic.  This paper draft
+poses a separate, falsifiable question: when do ownership and topology make
+independent local victim choices globally costly, and can bounded coordination
+avoid that cost without global serialization?  No MultiNPU implementation,
+deterministic replay, or hardware result is admitted today.  We freeze seven
+research questions, a six-link NPU claim chain, local/global/oracle baselines,
+conservation oracles, performance and coordination-overhead gates, negative
+stops, and a two-week delivery.  Until an ownership counterexample and native
+coordination path exist, the extension remains design-level porting/adaptation,
+not an NPU mechanism contribution.
+\end{abstract}
+
+\section{Introduction}
+Paged KV memory allows serving engines to reclaim active request state under
+pressure~\cite{Kwon2023}.  BidKV improves the local victim decision by ranking
+the capacity a victim frees against its estimated disruption cost
+\cite{BidKV2026}.  The accepted manuscript and its NVIDIA results are the
+inherited single-device baseline.  They contain no evidence that independent
+choices remain correct when one logical request spans or interacts with several
+accelerators.
+
+The multi-device extension begins where the local abstraction can fail.  A
+decision made from one device's pressure may ignore blocks owned elsewhere,
+collective dependencies, asynchronous ownership updates, recomputation that is
+charged twice, or transfer induced by moving the decision boundary.  Conversely,
+a global coordinator can cost more than it saves.  The contribution therefore
+cannot be ``global BidKV.''  It must identify an observable divergence between
+local and globally accountable choices, implement the minimum metadata exchange
+that repairs it, and predict when coordination should remain off.
+
+The repository currently provides only that research contract.  Historical
+single-device result directories remain evidence for inherited BidKV and are
+never relabeled MultiNPU.  Dedicated branches identify future carriers but do
+not admit code or results into this draft.
+
+\section{Seven-Question Contract}
+\begin{table}[H]
+\centering\small
+\begin{tabular}{p{0.04\linewidth}p{0.89\linewidth}}
+\toprule
+Q & Frozen answer \\
+\midrule
+1 & \textbf{Problem.} Under asymmetric per-device KV pressure and shared request ownership, when does independent local victim selection choose a globally expensive victim? \\
+2 & \textbf{Importance.} A bad coordinated decision can free the wrong physical capacity, duplicate recomputation, delay collectives, or serialize the serving path. \\
+3 & \textbf{Hidden assumption and gap.} Local BidKV assumes that capacity and disruption are attributable at one decision point. Generic multi-resource fairness~\cite{Ghodsi2011} does not supply request/KV ownership or recomputation semantics. \\
+4 & \textbf{Mechanism hypothesis.} Exchange a bounded ownership-and-cost receipt only at pressure events, reject stale epochs, and coordinate only when predicted global regret exceeds communication uncertainty; otherwise retain local BidKV. \\
+5 & \textbf{Feasibility.} Dedicated parent/runtime branches exist, but exact ownership hooks, replay, and coordination code are pending student work. \\
+6 & \textbf{Matched evaluation.} Compare independent local BidKV, the strongest non-BidKV local policy, global largest-first, the treatment, and an offline coordination oracle under identical topology, memory, requests, and restarts. \\
+7 & \textbf{Takeaway.} A reusable result is a measured boundary identifying when ownership-aware coordination pays, or a negative result showing that its cost dominates on tested topologies. \\
+\bottomrule
+\end{tabular}
+\caption{Questions are preregistered obligations, not completed claims.}
+\end{table}
+
+\section{Ownership Model and Hidden Assumption}
+Let $d\in\mathcal D$ index devices.  Request $i$ owns physical KV blocks
+$B_{i,d}$, and a local policy observes pressure $P_d$.  Reclaiming $i$ produces
+a vector of freed capacity $\mathbf f_i=(f_{i,d})$ and a global disruption
+$C_i$ that includes recomputation, synchronization, and any transfer.  A local
+score $f_{i,d}/\widehat C_{i,d}$ is safe only if local ownership and local cost
+are sufficient statistics for $\mathbf f_i$ and $C_i$.  The project tests that
+assumption rather than declaring it false.
+
+A candidate coordination receipt contains request and generation identity,
+ownership epoch, per-device blocks, lifecycle state, local pressure, predicted
+recompute/transfer cost, and monotonic timestamp.  A stale or incomplete receipt
+must not trigger a global action.  The proposed coordinator selects at most the
+minimum victim set needed to satisfy explicit per-device deficits and emits an
+auditable decision epoch.  This is a design hypothesis, not an implementation.
+
+\section{NPU Six-Link Claim Discipline}
+\begin{enumerate}
+\item \textbf{Architecture fact.} The selected TP/DP carrier is expected to
+distribute request execution and KV ownership, but the precise ownership map and
+hook identities are still an M0 deliverable.
+\item \textbf{Invalidated assumption.} The candidate invalid assumption is that
+each device can price and reclaim victims independently without affecting peers.
+It has not been invalidated on the pinned carrier.
+\item \textbf{Real counterexample.} None exists.  M0 first requires a
+deterministic replay case where the local optimum is globally worse; replay
+would still be simulation, not a hardware counterexample.
+\item \textbf{Native mechanism.} Ownership receipts and bounded coordination at
+named vLLM-HUST/Ascend hook points are pending.
+\item \textbf{Predictive boundary.} Coordination should help only when pressure
+and ownership are asymmetric, local/global choices diverge, and avoidable global
+cost exceeds message, synchronization, and staleness cost.
+\item \textbf{Generalization class.} A verified rule may generalize to serving
+systems with explicit sharded state ownership; it does not cover replicas with
+independent KV state or opaque ownership.
+\end{enumerate}
+The first four links are incomplete.  BidKV-MultiNPU is therefore explicitly an
+\textbf{unverified porting/adaptation study} at this head.
+
+\section{Mechanism Hypothesis}
+Coordination is pressure-triggered, not continuously centralized.  Each device
+publishes a bounded receipt for its candidate victims.  A decision is accepted
+only if all required owners share one epoch and the predicted global regret gap
+exceeds uncertainty plus coordination cost.  Otherwise each device uses the
+inherited local BidKV policy.  The coordinator neither changes admission nor
+compresses KV and never treats a request as released until every owning device
+acknowledges its physical block release.
+
+This scope excludes routing, placement, migration policy, cache compression,
+load balancing, and new quality surrogates.  It also excludes global fairness as
+a primary objective: fairness is a safety metric, while the mechanism claim is
+ownership-correct victim coordination.
+
+\section{Evidence Ledger}
+\begin{table}[H]
+\centering\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.23\linewidth}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.50\linewidth}}
+\toprule
+Asset & Label & Admissible interpretation \\
+\midrule
+Accepted BidKV paper/results & historical real-online, single device & Establishes the inherited local baseline only. \\
+MultiNPU M0 document & design/contract & Freezes ownership questions, replay baselines, invariants, and negative stops. \\
+Dedicated feature branches & unreviewed carrier & Identify future integration locations; no mechanism or result is admitted. \\
+Deterministic replay & TBD simulation & Must create local/global divergence and pass accounting before runtime work. \\
+Multi-NPU campaign & TBD & Required for any latency, throughput, scaling, or overhead statement. \\
+\bottomrule
+\end{tabular}
+\caption{No historical single-device result is promoted to MultiNPU evidence.}
+\end{table}
+
+\section{Matched Evaluation Contract}
+\subsection{Replay gate}
+The deterministic model must include at least two devices, asymmetric pressure,
+shared requests, independent local BidKV, the strongest non-BidKV local policy,
+global largest-first, and an offline oracle.  It must contain a case where the
+local optimum is globally worse.  If the treatment cannot beat local BidKV on
+any such case, runtime implementation stops.
+
+\subsection{Runtime identity and correctness}
+Any later vLLM-HUST execution uses the project-approved \texttt{.23} official
+container.  Host, devices, topology, model, container digest, parent and
+submodule heads, graph mode, command, requests, and result root come from a
+scheduler/allocation manifest; no fixed device or personal path is allowed.
+
+The oracle requires: one live ownership epoch per decision; no request both
+resident and released; exact per-owner freed-block conservation; one attribution
+of recompute and transfer cost; no duplicate victim; no stale decision applied;
+and token-identical deterministic output versus the inherited local baseline.
+Missing receipts fail closed to local BidKV.  Any correctness failure blocks
+performance claims.
+
+\subsection{Metrics and gates}
+Across at least three independent service starts, report task/request TTFT
+median/p95/p99, SLO attainment, throughput, preemptions, recomputed tokens,
+cross-device bytes, per-device freed blocks, coordination messages and latency,
+decision staleness, local/global divergence, oracle regret, fairness, failures,
+and all fallbacks.  Freeze numerical efficacy and overhead thresholds before
+opening results.  The minimum qualitative gate is a repeated deployable winner
+switch plus oracle headroom over independent local BidKV; an isolated latency
+delta is insufficient.
+
+Stop if ownership cannot be observed precisely, coordination cost is comparable
+to avoided recomputation, choices rarely diverge, or gains arise from changing
+memory, requests, output length, execution mode, or correctness.  Negative
+results close this mechanism, not the broader ownership problem.
+
+Week one delivers the ownership map, typed replay, three baselines, oracle, and
+invariant tests.  Week two names native hooks and implements a reviewable receipt
+path only if replay clears the action-space gate; hardware execution is a later,
+separately allocated student deliverable.
+
+\section{Related-Work and Claim Boundary}
+The accepted BidKV work supplies the strongest inherited local baseline
+\cite{BidKV2026}; its utility signal and results are not new MultiNPU evidence.
+PagedAttention documents the serving memory substrate and native reclamation
+context~\cite{Kwon2023}.  Dominant Resource Fairness formalizes multi-resource
+allocation fairness~\cite{Ghodsi2011}, but it does not bind logical requests to
+distributed KV ownership or price duplicated recomputation.  The proposed gap
+is therefore not generic global scheduling.  It is the conjunction of typed KV
+ownership, pressure-local decisions, and fail-closed coordination economics.
+A broader bibliography and direct multi-device victim-selection comparison are
+required before submission.
+
+\section{Conclusion}
+BidKV-MultiNPU is a separate research question, not a scaling label for an
+accepted single-device system.  At the current head there is no replay
+counterexample, native mechanism, or hardware evidence.  The project advances
+only if ownership-aware coordination produces observable action differences,
+passes exact accounting, and beats local BidKV after coordination cost.  A clean
+negative boundary is preferable to relabeling inherited results.
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}
