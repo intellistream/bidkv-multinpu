@@ -1,0 +1,24 @@
+# BidKV-MultiNPU advisor draft manifest
+
+- Status: M0 advisor-authored storyline draft; implementation and experiments remain student-owned.
+- Source base: `dc06f417667807af69d6f1603455310f3ad4df97` (`main`).
+- Accepted single-device manuscript: preserved at `paper/conference_101719.tex` and not modified.
+- Artifact commit: `e513cfd7194d1e7bf15eb4e7790b9d712effd951` (remote artifact commit, bound by metadata-only commits).
+- TeX entrypoint: `paper/multinpu/main.tex`.
+- Bibliography: `paper/multinpu/references.bib`.
+- Evidence ledger: `paper/multinpu/EVIDENCE_LEDGER.md`.
+- Build command: `make -C paper/multinpu` with `tectonic` from the project build environment.
+- Tectonic: `0.17.0`; exit code: `0`.
+- PDF/log: `paper/multinpu/build/main.pdf`, `paper/multinpu/build/tectonic.log`.
+- PDF pages: `4`.
+- Visual inspection: all four rendered pages inspected; no clipping, overlap, blank page, or unreadable table was found.
+- Transcript scan: no warning, overfull/underfull box, undefined reference, missing-character, or error line was found.
+- `main.tex` SHA256: `3f301ab0bcfe00402496fcf1618ef0087139107626e025b0b786efcfa5ac9502`.
+- `references.bib` SHA256: `7c8a62510fc322336450aad4c900a94a065ae9eb2eb34485d3a4bc8e1ccd5152`.
+- `EVIDENCE_LEDGER.md` SHA256: `b57439563371886deb8df012434070e856773953638dd10687eb93e6359ceb94`.
+- `main.pdf` SHA256: `f35f093cd399eb7fdb396eb74ea40e9917adaa80231457d055fc24c3923e524c`.
+- `tectonic.log` SHA256: `214dfaa3980c27782d698cf6a66ac802c0399dab7d73c2ba27a53ee8dd180aff`.
+- Host tests: `358 passed, 4 skipped` in 2.00 seconds with `PYTHONPATH=src`; `git diff --check` passed.
+- Initial clean-worktree invocation without `PYTHONPATH=src`: eight collection errors because the local package was not installed; no package or dependency was installed, and the canonical source-layout invocation cleared them.
+- No service, experiment, or NPU was run.
+- Highest extension evidence: M0 design/contract; no MultiNPU implementation, replay, NPU run, or result.
